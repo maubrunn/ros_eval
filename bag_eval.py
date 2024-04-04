@@ -9,15 +9,16 @@ import shutil
 
 plt.rcParams.update({'font.size': 26})
 ODOM_TOPIC = '/car_state/odom'
-PATH_ROOT = '/home/moe/bagfiles/gokart/carla/'
+PATH_ROOT = '/home/moe/bagfiles/gokart/bb/se-test/'
 GOKART_ODOM_TOPIC = '/bumblebee/se2_localization/gokart_state'
 
 BAGS = [
-    'carlamap_bb.bag',
+    'idscloc_fast.bag',
+    'loc_fast.bag'
 ]
-LABELS = ["carla"]
+LABELS = ["pbl", 'idsc']
 
-RESULTS_PATH = "big_eval/carla"
+RESULTS_PATH = "idsc_eval_fast"
 
 start_offset = 5
 max_time = 0
@@ -101,10 +102,12 @@ def main():
 
     dirpath = os.path.join(os.getcwd(),'plots', RESULTS_PATH)
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
-        print(dirpath, " exists, do you want to delete it? (y/n)")
+        print(dirpath, " exists, do you want to delete it? (y/[n])")
         if input() == 'y':
             shutil.rmtree(dirpath)
-    os.mkdir(dirpath)
+            os.mkdir(dirpath)
+    else:
+        os.mkdir(dirpath)
     data = []
     for bag_name in BAGS:
         print('Evaluating: ', bag_name)

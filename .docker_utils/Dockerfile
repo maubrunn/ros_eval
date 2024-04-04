@@ -1,4 +1,4 @@
-FROM ros:noetic-robot
+FROM ros:noetic
 ARG USERNAME=moe
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -14,19 +14,16 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
 RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y python3-pip
+RUN apt-get install -y python3-pip && apt install -y ros-noetic-tf
 WORKDIR /tmp
 COPY .docker_utils/requirements.txt .
 RUN pip install -r requirements.txt
 ENV SHELL /bin/bash
 
-RUN apt-get update && apt-get install -y python3-catkin-tools
 
-RUN mkdir -p "/home/${USERNAME}/catkin_ws/src/"
-WORKDIR "/home/${USERNAME}/catkin_ws"
-RUN chown -R $USERNAME "/home/${USERNAME}/catkin_ws"
-RUN sudo apt update && sudo apt install git -y
-# RUN catkin init && . /opt/ros/noetic/setup.sh  && git clone https://github.com/ethz-asl/vicon_bridge src/ && catkin build
+RUN mkdir -p "/home/${USERNAME}/eval"
+WORKDIR "/home/${USERNAME}/eval"
+RUN chown -R $USERNAME "/home/${USERNAME}/eval"
 USER ${USERNAME}
 CMD ["/bin/bash"]
 
