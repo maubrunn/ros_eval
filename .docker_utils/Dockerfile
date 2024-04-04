@@ -16,7 +16,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y python3-pip
 WORKDIR /tmp
-COPY requirements.txt .
+COPY .docker_utils/requirements.txt .
 RUN pip install -r requirements.txt
 ENV SHELL /bin/bash
 
@@ -26,7 +26,7 @@ RUN mkdir -p "/home/${USERNAME}/catkin_ws/src/"
 WORKDIR "/home/${USERNAME}/catkin_ws"
 RUN chown -R $USERNAME "/home/${USERNAME}/catkin_ws"
 RUN sudo apt update && sudo apt install git -y
-RUN catkin init && . /opt/ros/noetic/setup.sh  && git clone https://github.com/ethz-asl/vicon_bridge src/ && catkin build
+# RUN catkin init && . /opt/ros/noetic/setup.sh  && git clone https://github.com/ethz-asl/vicon_bridge src/ && catkin build
 USER ${USERNAME}
 CMD ["/bin/bash"]
 
