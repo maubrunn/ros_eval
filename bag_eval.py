@@ -99,8 +99,7 @@ def get_data(bag_path):
                             "vyaw": msg.twist.twist.angular.z,
                         })
                     bar()
-    df = pd.DataFrame(data)
-    return df
+    return  pd.DataFrame(data)
     
 
 def plot_data(data, path, title, x_label, y_label, col_bag):

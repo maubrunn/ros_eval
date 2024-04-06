@@ -9,19 +9,20 @@ import shutil
 from alive_progress import alive_bar
 
 plt.rcParams.update({'font.size': 26})
+# VICON_TOPIC = '/vicon/Car_with_camera/Car_with_camera'
 VICON_TOPIC = '/vesc/odom'
 ODOM_TOPIC = '/car_state/odom'
 PLOT = True
-PATH_ROOT = '/home/moe/bagfiles/gokart/carla'
+PATH_ROOT = '/home/moe/bagfiles/gokart/carla/'
 MAX_DT = 0.01
 
 VEL_ALPHA = 0.1
 
 BAGS = [
-    'carlamap_bb.bag',
-    'carlamap_fast_bb.bag',
-    'wintimap_bb.bag', 
-    'wintimap_herbie.bag'
+   'carlamap_bb.bag',
+   'carlamap_fast_bb.bag',
+    'wintimap_bb.bag',
+    'wintimap_herbie.bag',
 ]
 
 RESULTS_PATH = "carla_eval"
@@ -57,7 +58,6 @@ class TfBuffer:
         return self.buffer[self.curr_index][0]
 
 def evaluate_bag(bag_path):
-    df = pd.DataFrame(columns=["time, position_x, position_y, velocity_x, velocity_y"])
     error_x = 0
     error_vx = 0
     error_yaw = 0
@@ -67,6 +67,7 @@ def evaluate_bag(bag_path):
     i = 0
     with rosbag.Bag(bag_path) as bag:
         n = bag.get_message_count(ODOM_TOPIC)
+        data = []
         with alive_bar(n) as bar:
             last_vx_vicon = 0
             last_vy_vicon = 0
@@ -135,7 +136,7 @@ def evaluate_bag(bag_path):
                     error_vyaw = (vyaw_vicon - msg.twist.twist.angular.z)**2
                     # add to dataframe
                     if PLOT:
-                        df = pd.concat([df, pd.DataFrame({
+                        data.append({
                             "time": t.to_sec(),
                             "position_x": msg.pose.pose.position.x,
                             "vicon_position_x": vicon_pos_x,
@@ -149,7 +150,7 @@ def evaluate_bag(bag_path):
                             "vicon_yaw": vicon_yaw,
                             "vicon_vyaw": vyaw_vicon,
                             "vyaw": msg.twist.twist.angular.z,
-                        }, index=[0])], axis=0, ignore_index=True)
+                        }, index=[0])
                     last_vicon_msg = vicon_msg
                     i+=1
     error_x = int(math.sqrt(error_x/i) * 10000) / 10000
@@ -165,10 +166,10 @@ def evaluate_bag(bag_path):
     print('Mean Squared Error in yaw: ', error_yaw)
     print('Mean Squared Error in angular velocity: ', error_vyaw)
     print('Number of samples: ', i)
-    return df, [error_x, error_y, error_vx, error_vy, error_yaw, error_vyaw]
+    return  pd.DataFrame(data), [error_x, error_y, error_vx, error_vy, error_yaw, error_vyaw]
     
 
-def plot_data(df, path, title, x_label, y_label, col_bag, col_vicon):
+def plot_data(df, path, title, x_label, y_label, col_bag, col_vicon, y_lim=None):
     start_time = df['time'].iloc[0]
     figure= plt.figure( figsize=[10, 10])
     plt1 = figure.add_subplot(1, 1, 1)
@@ -178,6 +179,8 @@ def plot_data(df, path, title, x_label, y_label, col_bag, col_vicon):
     # plt1.title.set_text(title)
     plt1.set_xlabel(x_label)
     plt1.set_ylabel(y_label)
+    if y_lim is not None:
+        plt1.set_ylim(y_lim)
     plt1.grid()
     plt1.legend()
     plt1.set_xticklabels([])
@@ -199,8 +202,14 @@ def main():
     dirpath = os.path.join(os.getcwd(),'plots', RESULTS_PATH)
 
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
-        shutil.rmtree(dirpath)
+        print(dirpath, " exists, do you want to delete it? (y/[n])")
+        if input() == 'y':
+            shutil.rmtree(dirpath)
+        else:
+                print("Exiting")
+                return
     os.mkdir(dirpath)
+    
     data = []
     for bag_name in BAGS:
         bagdir = os.path.join(dirpath, bag_name.replace('.bag', ''))
@@ -221,12 +230,12 @@ def main():
         title   = f"{imu_type} imu fix, {fuse}, {camera}"
 
         if PLOT:
-            plot_data(data, os.path.join(bagdir, "positionx.pdf"), f"position x [m], {title}, RMSE = {errors[0]}", 'Time [s]', 'x [m]', "position_x", "vicon_position_x")
-            plot_data(data, os.path.join(bagdir, "positiony.pdf"), f"position y [m], {title}, RMSE = {errors[1]}", 'Time [s]', 'y [m]', "position_y", "vicon_position_y")
-            plot_data(data, os.path.join(bagdir, "velocityx.pdf"), f"velocity x [m/s], {title}, RMSE = {errors[2]}", 'Time [s]', 'vx [m/s]', "velocity_x", "vicon_velocity_x")
-            plot_data(data, os.path.join(bagdir, "velocityy.pdf"), f"velocity y [m/s], {title}, RMSE = {errors[3]}", 'Time [s]', 'vy [m/s]', "velocity_y", "vicon_velocity_y")
-            plot_data(data, os.path.join(bagdir, "yaw.pdf"), f"yaw [rad], {title}, RMSE = {errors[4]}", 'Time [s]', 'yaw [rad]', "yaw", "vicon_yaw")
-            plot_data(data, os.path.join(bagdir, "yawdot.pdf"), f"Angular Velocity [rad], {title}, RMSE = {errors[5]}", 'Time [s]', 'Angular velocity z [rad / s]', "vyaw", "vicon_vyaw")
+            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_positionx.pdf"), f"position x [m], {title}, RMSE = {errors[0]}", 'Time [s]', 'x [m]', "position_x", "vicon_position_x")
+            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_positiony.pdf"), f"position y [m], {title}, RMSE = {errors[1]}", 'Time [s]', 'y [m]', "position_y", "vicon_position_y")
+            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_velocityx.pdf"), f"velocity x [m/s], {title}, RMSE = {errors[2]}", 'Time [s]', 'vx [m/s]', "velocity_x", "vicon_velocity_x")
+            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_velocityy.pdf"), f"velocity y [m/s], {title}, RMSE = {errors[3]}", 'Time [s]', 'vy [m/s]', "velocity_y", "vicon_velocity_y")
+            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_yaw.pdf"), f"yaw [rad], {title}, RMSE = {errors[4]}", 'Time [s]', 'yaw [rad]', "yaw", "vicon_yaw")
+            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_yawdot.pdf"), f"Angular Velocity [rad], {title}, RMSE = {errors[5]}", 'Time [s]', 'Angular velocity z [rad / s]', "vyaw", "vicon_vyaw")
             
         print('')
     print('Overall dt: ', overall_dt)
