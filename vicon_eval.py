@@ -14,19 +14,16 @@ VICON_TOPIC = '/vesc/odom'
 ODOM_TOPIC = '/car_state/odom'
 PLOT = True
 PATH_ROOT = '/home/moe/bagfiles/gokart/carla/'
-MAX_DT = 0.01
+MAX_DT = 0.1
 
 VEL_ALPHA = 0.1
 
 BAGS = [
-   'carlamap_bb.bag',
-   'carlamap_fast_bb.bag',
-    'wintimap_bb.bag',
-    'wintimap_herbie.bag',
+    'carlamap_herbie.bag',
 ]
 
-RESULTS_PATH = "carla_eval"
-
+RESULTS_PATH = "carla_eval1"
+NORMALIZE = True
 overall_dt = 0
 
 
@@ -57,7 +54,28 @@ class TfBuffer:
         overall_dt += abs(self.buffer[self.curr_index][1] - time)
         return self.buffer[self.curr_index][0]
 
+def get_yaw(msg, vicon=False):
+    if not vicon:
+        return euler_from_quaternion([
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w])[2]
+    else:
+        return euler_from_quaternion([
+            msg.transform.rotation.x,
+            msg.transform.rotation.y,
+            msg.transform.rotation.z,
+            msg.transform.rotation.w])[2]
+
 def evaluate_bag(bag_path):
+    x_init = 0
+    y_init = 0
+    yaw_init = 0
+    vicon_x_init = 0
+    vicon_y_init = 0
+    vicon_yaw_init = 0
+    init = False
     error_x = 0
     error_vx = 0
     error_yaw = 0
@@ -76,83 +94,78 @@ def evaluate_bag(bag_path):
                 vx_vicon = 0
                 vy_vicon = 0
                 bar()
-                if vicon_msg is not None and tf_buffer.curr_index > 0:
-                    # compute mean squared error
-                    last_vicon_msg = tf_buffer.buffer[tf_buffer.curr_index - 1][0]
-                    dt = vicon_msg.header.stamp.to_sec() - last_vicon_msg.header.stamp.to_sec() 
-
-                    yaw = euler_from_quaternion([
-                                msg.pose.pose.orientation.x,
-                                msg.pose.pose.orientation.y,
-                                msg.pose.pose.orientation.z,
-                                msg.pose.pose.orientation.w])[2]
-                    
-                    if 'vicon' in VICON_TOPIC:
-                        vicon_pos_x = vicon_msg.transform.translation.x
-                        vicon_pos_y = vicon_msg.transform.translation.y
-                        vicon_yaw = euler_from_quaternion([
-                                    vicon_msg.transform.rotation.x,
-                                    vicon_msg.transform.rotation.y,
-                                    vicon_msg.transform.rotation.z,
-                                    vicon_msg.transform.rotation.w])[2]
-                        vx_glob_vicon = (vicon_msg.transform.translation.x - last_vicon_msg.transform.translation.x) / dt
-                        vy_glob_vicon = (vicon_msg.transform.translation.y - last_vicon_msg.transform.translation.y) / dt
-
-                        last_vicon_yaw = euler_from_quaternion([
-                                    last_vicon_msg.transform.rotation.x,
-                                    last_vicon_msg.transform.rotation.y,
-                                    last_vicon_msg.transform.rotation.z,
-                                    last_vicon_msg.transform.rotation.w])[2]
-                        if last_vicon_yaw - vicon_yaw > math.pi:
-                            vicon_yaw += 2 * math.pi
-                        vyaw_vicon = (vicon_yaw - last_vicon_yaw) / dt
-                        vx_vicon = vx_glob_vicon * math.cos(vicon_yaw) + vy_glob_vicon * math.sin(vicon_yaw)
-                        vy_vicon = -vx_glob_vicon * math.sin(vicon_yaw) + vy_glob_vicon * math.cos(vicon_yaw)
-                        vx_vicon = VEL_ALPHA * vx_vicon + (1 - VEL_ALPHA) * last_vx_vicon
-                        vy_vicon = VEL_ALPHA * vy_vicon + (1 - VEL_ALPHA) * last_vy_vicon
-                    else:
-                        vicon_yaw = euler_from_quaternion([
-                                    vicon_msg.pose.pose.orientation.x,
-                                    vicon_msg.pose.pose.orientation.y,
-                                    vicon_msg.pose.pose.orientation.z,
-                                    vicon_msg.pose.pose.orientation.w])[2]
-                        vicon_pos_x = vicon_msg.pose.pose.position.x
-                        vicon_pos_y = vicon_msg.pose.pose.position.y
-                        vx_vicon = vicon_msg.twist.twist.linear.x
-                        vy_vicon = vicon_msg.twist.twist.linear.y
-                        vyaw_vicon = vicon_msg.twist.twist.angular.z
                 
-                  
-                    
+                if vicon_msg is  None or tf_buffer.curr_index == 0:
+                    print('No vicon data at time: ', t.to_sec())
+                    continue
+                
+                if not init and NORMALIZE:
+                    x_init = msg.pose.pose.position.x
+                    y_init = msg.pose.pose.position.y
+                    yaw_init = get_yaw(msg)
+                    vicon_x_init = vicon_msg.transform.translation.x if 'vicon' in VICON_TOPIC else vicon_msg.pose.pose.position.x
+                    vicon_y_init = vicon_msg.transform.translation.y if 'vicon' in VICON_TOPIC else vicon_msg.pose.pose.position.y
+                    vicon_yaw_init = get_yaw(vicon_msg, 'vicon' in VICON_TOPIC)
+                    init = True
+                # compute mean squared error
+                last_vicon_msg = tf_buffer.buffer[tf_buffer.curr_index - 1][0]
+                dt = vicon_msg.header.stamp.to_sec() - last_vicon_msg.header.stamp.to_sec() 
+                
+                pos_x = msg.pose.pose.position.x - x_init
+                pos_y = msg.pose.pose.position.y - y_init
+                vy = 0
+                yaw = get_yaw(msg) - yaw_init
+                
+                if 'vicon' in VICON_TOPIC:
+                    vicon_pos_x = vicon_msg.transform.translation.x - vicon_x_init
+                    vicon_pos_y = vicon_msg.transform.translation.y - vicon_y_init
+                    vicon_yaw = get_yaw(vicon_msg, True) - vicon_yaw_init
+                    vx_glob_vicon = (vicon_msg.transform.translation.x - last_vicon_msg.transform.translation.x) / dt
+                    vy_glob_vicon = (vicon_msg.transform.translation.y - last_vicon_msg.transform.translation.y) / dt
+                    last_vicon_yaw = get_yaw(last_vicon_msg, True) - vicon_yaw_init
+                    if last_vicon_yaw - vicon_yaw > math.pi:
+                        vicon_yaw += 2 * math.pi
+                    vyaw_vicon = (vicon_yaw - last_vicon_yaw) / dt
+                    vx_vicon = vx_glob_vicon * math.cos(vicon_yaw) + vy_glob_vicon * math.sin(vicon_yaw)
+                    vy_vicon = -vx_glob_vicon * math.sin(vicon_yaw) + vy_glob_vicon * math.cos(vicon_yaw)
+                    vx_vicon = VEL_ALPHA * vx_vicon + (1 - VEL_ALPHA) * last_vx_vicon
+                    vy_vicon = VEL_ALPHA * vy_vicon + (1 - VEL_ALPHA) * last_vy_vicon
+                else:
+                    vicon_yaw = get_yaw(vicon_msg) - vicon_yaw_init
+                    vicon_pos_x = vicon_msg.pose.pose.position.x - vicon_x_init
+                    vicon_pos_y = vicon_msg.pose.pose.position.y  - vicon_y_init
+                    vx_vicon = vicon_msg.twist.twist.linear.x
+                    vy_vicon = vicon_msg.twist.twist.linear.y
+                    vyaw_vicon = vicon_msg.twist.twist.angular.z
 
                     last_vx_vicon = vx_vicon
                     last_vy_vicon = vy_vicon
 
-                    error_x += (vicon_pos_x - msg.pose.pose.position.x)**2
-                    error_y += (vicon_pos_y - msg.pose.pose.position.y)**2
+                    error_x += (vicon_pos_x - pos_x)**2
+                    error_y += (vicon_pos_y - pos_y)**2
                     error_yaw += (vicon_yaw - yaw)**2
                     error_vx += (vx_vicon - msg.twist.twist.linear.x)**2
-                    error_vy += (vy_vicon - msg.twist.twist.linear.y)**2
+                    error_vy += (vy_vicon - vy)**2
                     error_vyaw = (vyaw_vicon - msg.twist.twist.angular.z)**2
                     # add to dataframe
-                    if PLOT:
-                        data.append({
-                            "time": t.to_sec(),
-                            "position_x": msg.pose.pose.position.x,
-                            "vicon_position_x": vicon_pos_x,
-                            "position_y": msg.pose.pose.position.y,
-                            "vicon_position_y": vicon_pos_y,
-                            "velocity_x": msg.twist.twist.linear.x,
-                            "vicon_velocity_x": vx_vicon,
-                            "velocity_y": msg.twist.twist.linear.y,
-                            "vicon_velocity_y": vy_vicon,
-                            "yaw": yaw,
-                            "vicon_yaw": vicon_yaw,
-                            "vicon_vyaw": vyaw_vicon,
-                            "vyaw": msg.twist.twist.angular.z,
-                        }, index=[0])
-                    last_vicon_msg = vicon_msg
-                    i+=1
+                if PLOT:
+                    data.append({
+                        "time": t.to_sec(),
+                        "position_x": pos_x,
+                        "vicon_position_x": vicon_pos_x,
+                        "position_y": pos_y,
+                        "vicon_position_y": vicon_pos_y,
+                        "velocity_x": msg.twist.twist.linear.x,
+                        "vicon_velocity_x": vx_vicon,
+                        "velocity_y": vy,
+                        "vicon_velocity_y": vy_vicon,
+                        "yaw": yaw,
+                        "vicon_yaw": vicon_yaw,
+                        "vicon_vyaw": vyaw_vicon,
+                        "vyaw": msg.twist.twist.angular.z,
+                    })
+                last_vicon_msg = vicon_msg
+                i+=1
     error_x = int(math.sqrt(error_x/i) * 10000) / 10000
     error_y = int(math.sqrt(error_y/i) * 10000) / 10000
     error_yaw = int(math.sqrt(error_yaw/i) * 10000) / 10000

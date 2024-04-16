@@ -10,22 +10,22 @@ import time
 
 plt.rcParams.update({'font.size': 26})
 ODOM_TOPIC = '/car_state/odom'
-PATH_ROOT = '/home/moe/bagfiles/gokart/bb/se-test/'
+PATH_ROOT = '/home/moe/bagfiles/gokart/carla/'
 GOKART_ODOM_TOPIC = '/bumblebee/se2_localization/gokart_state'
 
 BAGS = [
-    'idscloc_mapping.bag',
-    'loc_mapping.bag'
+    'carlamap_bb.bag',
+    'wintimap_bb.bag'
 ]
-LABELS = ["idsc", 'pbl']
+LABELS = ["carla", 'winti']
 
-RESULTS_PATH = "idsc_eval"
+RESULTS_PATH = "carla_winti_eval"
 
-start_offset = 180
+start_offset = 7
 max_time = 0
-x_init = 0
-y_init = 0
-yaw_init = 0
+
+normalize = False
+
 
 
 def get_yaw(msg):
@@ -36,7 +36,21 @@ def get_yaw(msg):
         msg.pose.pose.orientation.w
     ])[2]
 
+def set_init_values(msg, idsc):
+    if idsc:
+        x_init = msg.pose2d.x
+        y_init = msg.pose2d.y
+        yaw_init = msg.pose2d.theta
+    else:
+        x_init = msg.pose.pose.position.x
+        y_init = msg.pose.pose.position.y
+        yaw_init = get_yaw(msg)
+    return x_init, y_init, yaw_init
+
 def get_data(bag_path):
+    x_init = 0
+    y_init = 0
+    yaw_init = 0
     start_time = None
     data = []
     with rosbag.Bag(bag_path) as bag:
@@ -44,61 +58,50 @@ def get_data(bag_path):
         n = bag.get_message_count(odom_topic)
         with alive_bar(n) as bar:
             for _, msg, t in bag.read_messages(topics=[odom_topic]):
-                    if start_time is None:
-                        start_time = t.to_sec()
-                        if 'idsc' in bag_path:
-                            x_init = msg.pose2d.x
-                            y_init = msg.pose2d.y
-                            yaw_init = msg.pose2d.theta
-                        else:
-                            x_init = msg.pose.pose.position.x
-                            y_init = msg.pose.pose.position.y
-                            yaw_init = get_yaw(msg)
+                if start_time is None:
+                    start_time = t.to_sec()
+                    if normalize:
+                        x_init, y_init, yaw_init = set_init_values(msg, 'idsc' in bag_path)
+                    
 
-                    if t.to_sec() - start_time < start_offset:
-                        bar()
-                        if 'idsc' in bag_path:
-                            x_init = msg.pose2d.x
-                            y_init = msg.pose2d.y
-                            yaw_init = msg.pose2d.theta
-                        else:
-                            x_init = msg.pose.pose.position.x
-                            y_init = msg.pose.pose.position.y
-                            yaw_init = get_yaw(msg)
-                        continue
-                # add to dataframe
-                    if 'idsc' in bag_path:
-
-                        yaw = msg.pose2d.theta - yaw_init
-                        if yaw > 3.14:
-                            yaw -= 6.28
-                        if yaw < -3.14:
-                            yaw += 6.28
-                        data.append({
-                            "time": t.to_sec() - start_time,
-                            "position_x": msg.pose2d.x - x_init,
-                            "position_y": msg.pose2d.y - y_init,
-                            "velocity_x": msg.pose2d_dot.x,
-                            "velocity_y": msg.pose2d_dot.y,
-                            "yaw": yaw,
-                            "vyaw": msg.pose2d_dot.theta,
-                        })
-                    else:
-                        yaw = get_yaw(msg) - yaw_init
-                        if yaw > 3.14:
-                            yaw -= 6.28
-                        if yaw < -3.14:
-                            yaw += 6.28
-                        data.append({
-                            "time": t.to_sec() - start_time,
-                            "position_x": msg.pose.pose.position.x - x_init,
-                            "position_y": msg.pose.pose.position.y - y_init,
-                            "velocity_x": msg.twist.twist.linear.x,
-                            "velocity_y": msg.twist.twist.linear.y,
-                            "yaw": yaw,
-                            "vyaw": msg.twist.twist.angular.z,
-                        })
+                if t.to_sec() - start_time < start_offset:
                     bar()
+                    if normalize:
+                        x_init, y_init, yaw_init = set_init_values(msg, 'idsc' in bag_path)
+                    continue
+            # add to dataframe
+            
+                if 'idsc' in bag_path:
+                    yaw = msg.pose2d.theta - yaw_init
+                    if yaw > 3.14:
+                        yaw -= 6.28
+                    if yaw < -3.14:
+                        yaw += 6.28
+                    data.append({
+                        "time": t.to_sec() - start_time,
+                        "position_x": msg.pose2d.x - x_init,
+                        "position_y": msg.pose2d.y - y_init,
+                        "velocity_x": msg.pose2d_dot.x,
+                        "velocity_y": msg.pose2d_dot.y,
+                        "yaw": yaw,
+                        "vyaw": msg.pose2d_dot.theta,
+                    })
+                else:
+                    yaw = get_yaw(msg) - yaw_init
+                    if yaw > 3.14:
+                        yaw -= 6.28
+                    if yaw < -3.14:
+                        yaw += 6.28
+                    data.append({
+                        "time": t.to_sec() - start_time,
+                        "position_x": msg.pose.pose.position.x - x_init,
+                        "position_y": msg.pose.pose.position.y - y_init,
+                        "velocity_x": msg.twist.twist.linear.x,
+                        "velocity_y": 0,
+                        "yaw": yaw,
+                        "vyaw": msg.twist.twist.angular.z,
+                    })
+                bar()
     return  pd.DataFrame(data)
     
 
