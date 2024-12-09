@@ -32,12 +32,12 @@ class TfBuffer:
         self.bag_path = bag_path
         self.buffer = []
         self.curr_index = 0
-    
+
         # read into_buffer
         with rosbag.Bag(bag_path) as vicon_bag:
             for _, msg, t in vicon_bag.read_messages(topics=[topic_name]):
                 self.buffer.append((msg, t.to_sec()))
-     
+
 
     def get_transform_at_time(self, time):
         global overall_dt
@@ -94,11 +94,11 @@ def evaluate_bag(bag_path):
                 vx_vicon = 0
                 vy_vicon = 0
                 bar()
-                
+
                 if vicon_msg is  None or tf_buffer.curr_index == 0:
                     print('No vicon data at time: ', t.to_sec())
                     continue
-                
+
                 if not init and NORMALIZE:
                     x_init = msg.pose.pose.position.x
                     y_init = msg.pose.pose.position.y
@@ -109,13 +109,13 @@ def evaluate_bag(bag_path):
                     init = True
                 # compute mean squared error
                 last_vicon_msg = tf_buffer.buffer[tf_buffer.curr_index - 1][0]
-                dt = vicon_msg.header.stamp.to_sec() - last_vicon_msg.header.stamp.to_sec() 
-                
+                dt = vicon_msg.header.stamp.to_sec() - last_vicon_msg.header.stamp.to_sec()
+
                 pos_x = msg.pose.pose.position.x - x_init
                 pos_y = msg.pose.pose.position.y - y_init
                 vy = 0
                 yaw = get_yaw(msg) - yaw_init
-                
+
                 if 'vicon' in VICON_TOPIC:
                     vicon_pos_x = vicon_msg.transform.translation.x - vicon_x_init
                     vicon_pos_y = vicon_msg.transform.translation.y - vicon_y_init
@@ -180,7 +180,7 @@ def evaluate_bag(bag_path):
     print('Mean Squared Error in angular velocity: ', error_vyaw)
     print('Number of samples: ', i)
     return  pd.DataFrame(data), [error_x, error_y, error_vx, error_vy, error_yaw, error_vyaw]
-    
+
 
 def plot_data(df, path, title, x_label, y_label, col_bag, col_vicon, y_lim=None):
     start_time = df['time'].iloc[0]
@@ -222,7 +222,7 @@ def main():
                 print("Exiting")
                 return
     os.mkdir(dirpath)
-    
+
     data = []
     for bag_name in BAGS:
         bagdir = os.path.join(dirpath, bag_name.replace('.bag', ''))
@@ -239,7 +239,7 @@ def main():
         if "ax" in bag_name:
             fuse = "ax imu fusion"
         if "ay" in bag_name:
-            fuse = "ay imu fusion"  
+            fuse = "ay imu fusion"
         title   = f"{imu_type} imu fix, {fuse}, {camera}"
 
         if PLOT:
@@ -249,10 +249,10 @@ def main():
             plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_velocityy.pdf"), f"velocity y [m/s], {title}, RMSE = {errors[3]}", 'Time [s]', 'vy [m/s]', "velocity_y", "vicon_velocity_y")
             plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_yaw.pdf"), f"yaw [rad], {title}, RMSE = {errors[4]}", 'Time [s]', 'yaw [rad]', "yaw", "vicon_yaw")
             plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_yawdot.pdf"), f"Angular Velocity [rad], {title}, RMSE = {errors[5]}", 'Time [s]', 'Angular velocity z [rad / s]', "vyaw", "vicon_vyaw")
-            
+
         print('')
     print('Overall dt: ', overall_dt)
 
-    
+
 if __name__ == '__main__':
     main()

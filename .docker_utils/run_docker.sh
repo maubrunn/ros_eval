@@ -1,1 +1,1 @@
-docker run -it --rm --network host -v /home/moe/bagfiles:/home/moe/bagfiles -v /home/moe/code/ros_eval:/home/moe/eval/ros_eval maubrunner/ros_eval /bin/bash
+docker run -it --rm --network host -v /Users/moe/catkin_ws/src/race_stack/system_identification/sim_improvement/dataset/GokartBags/:/home/moe/tmp -v /Users/moe/repos/ros_eval:/home/moe/eval/ros_eval maubrunner/ros_eval:arm /bin/bash
