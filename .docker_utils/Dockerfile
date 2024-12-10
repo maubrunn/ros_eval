@@ -1,9 +1,9 @@
+ARG BASE_IMAGE=ros
+FROM $BASE_IMAGE:noetic
 ARG USERNAME=moe
 ARG USER_UID=501
 ARG USER_GID=20
-ARG BASE_IMAGE=ros
 
-FROM $BASE_IMAGE:noetic
 # Create the user
 RUN useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     #

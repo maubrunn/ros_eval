@@ -1,3 +1,4 @@
+rosbags
 matplotlib
 pandas
 alive_progress
