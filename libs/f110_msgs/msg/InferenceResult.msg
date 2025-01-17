@@ -1,0 +1,9 @@
+string class_id
+int8 car_id
+float32[] car_id_pbl
+float32 confidence
+int64 top
+int64 left
+int64 bottom
+int64 right
+float32[] embedding

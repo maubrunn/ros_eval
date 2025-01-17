@@ -1,22 +1,23 @@
 services: 
-  ros_eval:
-    build:
-      context: .
-      dockerfile: .docker_utils/Dockerfile
-      args:
-        BASE_IMAGE: ros
-        USERNAME: $USER
-        USER_UID: $UID
-        USER_GID: $GID        
-    image: maubrunner/ros_eval:x86
-    container_name: ros_eval_container
-    stdin_open: true
-    tty: true
-    network_mode: "host"
-    volumes: 
-      - "${HOME}/repos/ros_eval:/home/${USER}/ros_eval"
-      - "${HOME}/pbl/rosbags:/home/${USER}/data"
-    command: /bin/bash
+  # ros_eval:
+  #   build:
+  #     context: .
+  #     dockerfile: .docker_utils/Dockerfile
+  #     args:
+  #       BASE_IMAGE: ros
+  #       USERNAME: $USER
+  #       USER_UID: $UID
+  #       USER_GID: $GID        
+  #   image: maubrunner/ros_eval:x86
+  #   container_name: ros_eval_container_x86
+  #   stdin_open: true
+  #   tty: true
+  #   network_mode: "host"
+  #   volumes: 
+  #     - "${HOME}/repos/ros_eval:/home/${USER}/ros_eval"
+  #     - "${HOME}/pbl/rosbags:/home/${USER}/data"
+  #   command: /bin/bash
+
   ros_eval_arm:
     build:
       context: .
@@ -32,6 +33,27 @@ services:
     tty: true
     network_mode: "host"
     volumes: 
-      - "${HOME}/repos/ros_eval:/home/${USER}/ros_eval"
+      - "${HOME}/repos/ros_eval/src:/home/${USER}/ros_eval/src"
+      - "${HOME}/repos/ros_eval/plots:/home/${USER}/ros_eval/plots"
+      - "${HOME}/repos/ros_eval/cache:/home/${USER}/ros_eval/cache"
       - "${HOME}/pbl/rosbags:/home/${USER}/data"
     command: /bin/bash
+
+  ros_eval_arm_dev:
+    build:
+      context: .
+      dockerfile: .docker_utils/Dockerfile
+      args:
+        BASE_IMAGE: arm64v8/ros
+        USERNAME: $USER
+        USER_UID: $UID
+        USER_GID: $GID
+    image: maubrunner/ros_eval:arm
+    container_name: ros_eval_devcontainer
+    stdin_open: true
+    tty: true
+    network_mode: "host"
+    volumes: 
+      - "${HOME}/repos/ros_eval:/home/${USER}/ros_eval:cached"
+      - "${HOME}/pbl/rosbags:/home/${USER}/data"
+    command: sleep infinity

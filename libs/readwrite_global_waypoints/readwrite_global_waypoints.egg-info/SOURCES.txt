@@ -1,0 +1,7 @@
+setup.py
+readwrite_global_waypoints/__init__.py
+readwrite_global_waypoints/rw_global_waypoints_src.py
+readwrite_global_waypoints.egg-info/PKG-INFO
+readwrite_global_waypoints.egg-info/SOURCES.txt
+readwrite_global_waypoints.egg-info/dependency_links.txt
+readwrite_global_waypoints.egg-info/top_level.txt

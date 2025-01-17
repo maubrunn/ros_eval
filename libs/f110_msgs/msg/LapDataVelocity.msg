@@ -1,0 +1,7 @@
+float32 max_vel_x_mps
+float32 min_vel_x_mps
+float32 max_vel_y_mps
+float32 min_vel_y_mps
+float32 max_vel_mps
+float32 avg_slip_angle_rad
+float32 max_slip_angle_rad

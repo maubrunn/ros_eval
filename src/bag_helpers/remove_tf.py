@@ -10,6 +10,8 @@ import tempfile
 TF_TOPICS = ["/tf", "/tf_static"]
 
 def remove_tf(input_bag_file, output_bag_file=None):
+    print("There is a bug where the wrong bag is deleted, first debuig this")
+    sys.exit(1)
     if output_bag_file is None:        
         print(f"No output specified. Going to overwrite old bag: {input_bag_file}\n" 
               "Do you want to continue? [Y/n]")

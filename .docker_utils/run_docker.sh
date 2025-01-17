@@ -2,11 +2,37 @@
 
 # Container names for both services
 CONTAINER_NAME="ros_eval_container"
-# Flag for restarting the container
-RESTART_FLAG=$1
 
-# Flag to choose ARM service
-ARM_FLAG=$2
+
+for arg in "$@"; do
+  case $arg in
+    --help)
+      echo "Usage: ./run_docker.sh [OPTIONS]"
+      echo "Options:"
+      echo "  --help      Show this help message and exit."
+      echo "  --restart   Restarts the container if it is already running."
+      echo "  --arm       Run the ARM version of the service."
+      exit 0
+      ;;
+    --restart)
+      RESTART_FLAG=1
+      ;;
+    --arm)
+      ARM_FLAG=1
+      ;;
+    *)
+      echo "Unknown option: $arg"
+      exit 1
+      ;;
+  esac
+done
+
+if [[ $ARM_FLAG -eq 1 ]]; then
+    SERVICE_NAME="ros_eval_arm"
+else
+    SERVICE_NAME="ros_eval"
+fi
+
 
 # Function to check if the container is running
 is_container_running() {
@@ -25,17 +51,9 @@ start_container() {
 restart_container() {
     local service=$1
     echo "Restarting the container for service $service..."
-    docker-compose down && docker-compose up -d $service
+    docker-compose down $service && docker-compose up -d $service
 }
 
-# Check which service to run (x86 or ARM)
-if [ "$ARM_FLAG" == "--arm" ]; then
-    SERVICE_NAME="ros_eval_arm"
-else
-    SERVICE_NAME="ros_eval"
-fi
-
-# Check if the selected container is running
 if [ -z "$(is_container_running $CONTAINER_NAME)" ]; then
     echo "Container for $SERVICE_NAME is not running. Starting it..."
     start_container $SERVICE_NAME
@@ -44,11 +62,10 @@ else
 fi
 
 # If the restart flag is set, restart the container
-if [ "$RESTART_FLAG" == "--restart" ]; then
+if [[ $RESTART_FLAG -eq 1 ]]; then
     restart_container $SERVICE_NAME
 fi
-
-# Run the exec command to get a terminal inside the selected container
+  # Run the exec command to get a terminal inside the selected container
 echo "Accessing the container terminal for $SERVICE_NAME..."
 docker exec -it $CONTAINER_NAME /bin/bash
 

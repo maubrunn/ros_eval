@@ -1,2 +1,5 @@
 plots/
+cache/
 .DS_Store
+.vscode/
+**/*.pyc

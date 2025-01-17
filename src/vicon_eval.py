@@ -9,20 +9,20 @@ import shutil
 from alive_progress import alive_bar
 
 plt.rcParams.update({'font.size': 26})
-# VICON_TOPIC = '/vicon/Car_with_camera/Car_with_camera'
-VICON_TOPIC = '/vesc/odom'
-ODOM_TOPIC = '/car_state/odom'
+# VICON_TOPIC = '/vicon/CarNew/CarNew'
+VICON_TOPIC = '/carla_interface/traffic_manager/npc_1/gt'
+ODOM_TOPIC = '/carla_interface/traffic_manager/npc_1/pose'
 PLOT = True
-PATH_ROOT = '/home/moe/bagfiles/gokart/carla/'
+PATH_ROOT = '/home/moe/data/carla/npc_eval/'
 MAX_DT = 0.1
 
 VEL_ALPHA = 0.1
 
 BAGS = [
-    'carlamap_herbie.bag',
+    'npc_carla.bag',
 ]
 
-RESULTS_PATH = "carla_eval1"
+RESULTS_PATH = "carla_npc"
 NORMALIZE = True
 overall_dt = 0
 
@@ -57,10 +57,10 @@ class TfBuffer:
 def get_yaw(msg, vicon=False):
     if not vicon:
         return euler_from_quaternion([
-            msg.pose.pose.orientation.x,
-            msg.pose.pose.orientation.y,
-            msg.pose.pose.orientation.z,
-            msg.pose.pose.orientation.w])[2]
+            msg.pose.orientation.x,
+            msg.pose.orientation.y,
+            msg.pose.orientation.z,
+            msg.pose.orientation.w])[2]
     else:
         return euler_from_quaternion([
             msg.transform.rotation.x,
@@ -81,6 +81,7 @@ def evaluate_bag(bag_path):
     error_yaw = 0
     error_y = 0
     error_vy = 0
+    error_vyaw = 0
     tf_buffer = TfBuffer(VICON_TOPIC, bag_path)
     i = 0
     with rosbag.Bag(bag_path) as bag:
@@ -100,19 +101,19 @@ def evaluate_bag(bag_path):
                     continue
 
                 if not init and NORMALIZE:
-                    x_init = msg.pose.pose.position.x
-                    y_init = msg.pose.pose.position.y
+                    x_init = msg.pose.position.x
+                    y_init = msg.pose.position.y
                     yaw_init = get_yaw(msg)
-                    vicon_x_init = vicon_msg.transform.translation.x if 'vicon' in VICON_TOPIC else vicon_msg.pose.pose.position.x
-                    vicon_y_init = vicon_msg.transform.translation.y if 'vicon' in VICON_TOPIC else vicon_msg.pose.pose.position.y
+                    vicon_x_init = vicon_msg.transform.translation.x if 'vicon' in VICON_TOPIC else vicon_msg.pose.position.x
+                    vicon_y_init = vicon_msg.transform.translation.y if 'vicon' in VICON_TOPIC else vicon_msg.pose.position.y
                     vicon_yaw_init = get_yaw(vicon_msg, 'vicon' in VICON_TOPIC)
                     init = True
                 # compute mean squared error
                 last_vicon_msg = tf_buffer.buffer[tf_buffer.curr_index - 1][0]
                 dt = vicon_msg.header.stamp.to_sec() - last_vicon_msg.header.stamp.to_sec()
 
-                pos_x = msg.pose.pose.position.x - x_init
-                pos_y = msg.pose.pose.position.y - y_init
+                pos_x = msg.pose.position.x - x_init
+                pos_y = msg.pose.position.y - y_init
                 vy = 0
                 yaw = get_yaw(msg) - yaw_init
 
@@ -132,21 +133,21 @@ def evaluate_bag(bag_path):
                     vy_vicon = VEL_ALPHA * vy_vicon + (1 - VEL_ALPHA) * last_vy_vicon
                 else:
                     vicon_yaw = get_yaw(vicon_msg) - vicon_yaw_init
-                    vicon_pos_x = vicon_msg.pose.pose.position.x - vicon_x_init
-                    vicon_pos_y = vicon_msg.pose.pose.position.y  - vicon_y_init
-                    vx_vicon = vicon_msg.twist.twist.linear.x
-                    vy_vicon = vicon_msg.twist.twist.linear.y
-                    vyaw_vicon = vicon_msg.twist.twist.angular.z
+                    vicon_pos_x = vicon_msg.pose.position.x - vicon_x_init
+                    vicon_pos_y = vicon_msg.pose.position.y  - vicon_y_init
+                    # vx_vicon = vicon_msg.twist.twist.linear.x
+                    # vy_vicon = vicon_msg.twist.twist.linear.y
+                    # vyaw_vicon = vicon_msg.twist.twist.angular.z
 
                     last_vx_vicon = vx_vicon
                     last_vy_vicon = vy_vicon
 
-                    error_x += (vicon_pos_x - pos_x)**2
-                    error_y += (vicon_pos_y - pos_y)**2
-                    error_yaw += (vicon_yaw - yaw)**2
-                    error_vx += (vx_vicon - msg.twist.twist.linear.x)**2
-                    error_vy += (vy_vicon - vy)**2
-                    error_vyaw = (vyaw_vicon - msg.twist.twist.angular.z)**2
+                error_x += (vicon_pos_x - pos_x)**2
+                error_y += (vicon_pos_y - pos_y)**2
+                error_yaw += (vicon_yaw - yaw)**2
+                # error_vx += (vx_vicon - msg.twist.twist.linear.x)**2
+                # error_vy += (vy_vicon - vy)**2
+                # error_vyaw = (vyaw_vicon - msg.twist.twist.angular.z)**2
                     # add to dataframe
                 if PLOT:
                     data.append({
@@ -155,14 +156,14 @@ def evaluate_bag(bag_path):
                         "vicon_position_x": vicon_pos_x,
                         "position_y": pos_y,
                         "vicon_position_y": vicon_pos_y,
-                        "velocity_x": msg.twist.twist.linear.x,
-                        "vicon_velocity_x": vx_vicon,
-                        "velocity_y": vy,
-                        "vicon_velocity_y": vy_vicon,
-                        "yaw": yaw,
-                        "vicon_yaw": vicon_yaw,
-                        "vicon_vyaw": vyaw_vicon,
-                        "vyaw": msg.twist.twist.angular.z,
+                        # "velocity_x": msg.twist.twist.linear.x,
+                        # "vicon_velocity_x": vx_vicon,
+                        # "velocity_y": vy,
+                        # "vicon_velocity_y": vy_vicon,
+                        "yaw": yaw, 
+                        # "vicon_yaw": vicon_yaw,
+                        # "vicon_vyaw": vyaw_vicon,
+                        # "vyaw": msg.twist.twist.angular.z,
                     })
                 last_vicon_msg = vicon_msg
                 i+=1
@@ -245,10 +246,10 @@ def main():
         if PLOT:
             plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_positionx.pdf"), f"position x [m], {title}, RMSE = {errors[0]}", 'Time [s]', 'x [m]', "position_x", "vicon_position_x")
             plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_positiony.pdf"), f"position y [m], {title}, RMSE = {errors[1]}", 'Time [s]', 'y [m]', "position_y", "vicon_position_y")
-            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_velocityx.pdf"), f"velocity x [m/s], {title}, RMSE = {errors[2]}", 'Time [s]', 'vx [m/s]', "velocity_x", "vicon_velocity_x")
-            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_velocityy.pdf"), f"velocity y [m/s], {title}, RMSE = {errors[3]}", 'Time [s]', 'vy [m/s]', "velocity_y", "vicon_velocity_y")
-            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_yaw.pdf"), f"yaw [rad], {title}, RMSE = {errors[4]}", 'Time [s]', 'yaw [rad]', "yaw", "vicon_yaw")
-            plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_yawdot.pdf"), f"Angular Velocity [rad], {title}, RMSE = {errors[5]}", 'Time [s]', 'Angular velocity z [rad / s]', "vyaw", "vicon_vyaw")
+            # plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_velocityx.pdf"), f"velocity x [m/s], {title}, RMSE = {errors[2]}", 'Time [s]', 'vx [m/s]', "velocity_x", "vicon_velocity_x")
+            # plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_velocityy.pdf"), f"velocity y [m/s], {title}, RMSE = {errors[3]}", 'Time [s]', 'vy [m/s]', "velocity_y", "vicon_velocity_y")
+            # plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_yaw.pdf"), f"yaw [rad], {title}, RMSE = {errors[4]}", 'Time [s]', 'yaw [rad]', "yaw", "vicon_yaw")
+            # plot_data(data, os.path.join(bagdir, f"{bag_name.replace('.bag', '')}_yawdot.pdf"), f"Angular Velocity [rad], {title}, RMSE = {errors[5]}", 'Time [s]', 'Angular velocity z [rad / s]', "vyaw", "vicon_vyaw")
 
         print('')
     print('Overall dt: ', overall_dt)
