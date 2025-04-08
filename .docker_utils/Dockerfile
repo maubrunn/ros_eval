@@ -36,9 +36,10 @@ COPY .docker_utils/bashrc_ext.txt /home/${USERNAME}/bashrc_ext
 RUN cat /home/${USERNAME}/bashrc_ext >> /home/${USERNAME}/.bashrc
 WORKDIR /ros_eval
 COPY . /ros_eval
+
+COPY .docker_utils/start.sh /start.sh
 RUN chown -R ${USER_UID}:${USER_GID} /ros_eval
 RUN chown ${USER_UID}:${USER_GID} /start.sh && chmod +x /start.sh
-COPY .docker_utils/start.sh /start.sh
 
 USER ${USERNAME}
 RUN pip install -e .

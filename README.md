@@ -11,7 +11,7 @@ Afterwards:
 ## Usage
 `docker compose up ros_eval`
 
-Access the notebooks at: `localhost:7000`
+Access the notebooks at: `localhost:7001`
 
 ### ARM
 The same as above but with `ros_eval_arm`
