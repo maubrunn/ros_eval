@@ -41,4 +41,4 @@ USER ${USERNAME}
 RUN pip install -e .
 RUN chown -R ${USER_UID}:${USER_GID} /ros_eval
 
-CMD ["python3", "-m",  "notebook", "--port=7000", "--no-browser", "--notebook-dir=/home/moe/ros_eval/src/notebooks"]
+CMD ["python3", "-m",  "notebook", "--port=7000", "--no-browser", "--notebook-dir=/home/${USERNAME}/ros_eval/src/notebooks"]
