@@ -7,11 +7,8 @@ mkdir videos
 
 echo "Generating .env file"
 
-$USERNAME=$(whoami)
-$UID=$(id -u)
-$GID=$(id -g)
-echo "USER=$USERNAME" > .env
-echo "UID=$UID" >> .env
-echo "GID=$GID" >> .env
+echo "USER=$(whoami)" > .env
+echo "UID=$(id -u)" >> .env
+echo "GID=$(id -g)" >> .env
 
 docker compose build
