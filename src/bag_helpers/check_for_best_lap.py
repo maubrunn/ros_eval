@@ -2,15 +2,11 @@ import os
 import rosbag
 from alive_progress import alive_bar
 import fire
-import sys
-import tf
-import tf2_ros
-from tf2_msgs.msg import TFMessage
-import rospy
-import geometry_msgs.msg as geometry_msgs
 import json
+
 SCALAR_TOPIC = "/dyn_sector_server/parameter_updates"
 LAP_TOPIC = "/lap_data"
+from utils.files import get_text_of_last_dir
 
 
 def update_candidates(scalar, lap_time, avg_e, max_e, bag, start_time, end_time, candidates, all):
@@ -52,8 +48,8 @@ def check_bag(bag, candidates, all):
         if not check_topics(inbag.get_type_and_topic_info().topics.keys(), bag):
             return candidates
         n = inbag.get_message_count()
-        scalar_updated = True
-        scalar = 0.
+        scalar_updated = False
+        scalar = 0.7
         start_time = None
         with alive_bar(n) as bar:
             for topic, msg, t in inbag.read_messages():
@@ -101,15 +97,10 @@ def write_cache(dir, cache):
 def write_best_lap(candidates, dir):
     json_obj = {"candidates": candidates}
     path = f"plots/check_laps/{dir}_best_lap.json"
-    #write json_obj to path
+    
     with open(path, "w") as f:
         f.write(json.dumps(json_obj, indent=4))
 
-    
-def get_text_of_last_dir(dir):
-    if dir[-1] == "/":
-        return dir.split("/")[-2]
-    return dir.split("/")[-1]
 
 def check_dir(dir, use_cache=False, all=False):
     print("Checking directory: ", dir)

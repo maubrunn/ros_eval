@@ -1,5 +1,9 @@
 plots/
+videos/
 cache/
 .DS_Store
 .vscode/
 **/*.pyc
+**/*.ipynb_checkpoints
+**/__pycache__/
+.env

@@ -22,8 +22,8 @@ def pearson_correlation(x, y):
         return corr
     
 def cross_correlation(x, y):
-    corr = np.correlate(x, y, mode='full').max()
-    print("Cross Correlation: ", corr)
+    corr = np.correlate(x, y, mode='full')
+    print("Max Cross Correlation: ", corr.max())
     return corr
 
 def kld(x, y, fs=40):

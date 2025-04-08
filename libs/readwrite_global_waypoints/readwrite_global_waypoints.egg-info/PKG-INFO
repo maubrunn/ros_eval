@@ -1,6 +1,0 @@
-Metadata-Version: 2.1
-Name: readwrite_global_waypoints
-Version: 1.0
-Summary: Utility functions for reading/writing global waypoints
-Author: Tianyi Lim
-Author-email: tialim@student.ethz.ch

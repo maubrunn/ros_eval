@@ -59,13 +59,9 @@ if [ -z "$(is_container_running $CONTAINER_NAME)" ]; then
     start_container $SERVICE_NAME
 else
     echo "Container for $SERVICE_NAME is already running."
+    if [[ $RESTART_FLAG -eq 1 ]]; then
+        restart_container $SERVICE_NAME
+    fi
 fi
 
-# If the restart flag is set, restart the container
-if [[ $RESTART_FLAG -eq 1 ]]; then
-    restart_container $SERVICE_NAME
-fi
-  # Run the exec command to get a terminal inside the selected container
-echo "Accessing the container terminal for $SERVICE_NAME..."
-docker exec -it $CONTAINER_NAME /bin/bash
 

@@ -4,5 +4,8 @@ pandas
 alive_progress
 fire
 numpy==1.24.4
-# rospy
 scikit-learn
+opencv-python
+argcomplete
+matplotlib_scalebar
+notebook
