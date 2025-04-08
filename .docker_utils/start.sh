@@ -1,0 +1,1 @@
+python3 -m notebook --port=7000 --no-browser --notebook-dir=/home/${USERNAME}/ros_eval/src/notebooks
