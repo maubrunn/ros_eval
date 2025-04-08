@@ -1,13 +1,11 @@
 ARG BASE_IMAGE=ros
 FROM ${BASE_IMAGE}:noetic
-ARG USERNAME=moe
-ARG USER_UID=501
-ARG USER_GID=20
+ARG USERNAME=foo
+ARG USER_UID=1
+ARG USER_GID=1
 
-# Create the user
-RUN useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    #
-    # [Optional] Add sudo support. Omit if you don't need to install software after connecting.
+RUN groupadd --gid $USER_GID $USERNAME \ 
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && apt-get update \
     && apt-get install -y sudo \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
