@@ -31,7 +31,7 @@ COPY libs/ /libs
 RUN cd frenet_conversion && pip3 install -e .
 
 WORKDIR /catkin_ws
-RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && mkdir src && catkin_make"
 COPY .docker_utils/bashrc_ext.txt /home/${USERNAME}/bashrc_ext
 RUN cat /home/${USERNAME}/bashrc_ext >> /home/${USERNAME}/.bashrc
 WORKDIR /ros_eval
