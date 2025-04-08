@@ -11,4 +11,4 @@ echo "USER=$(whoami)" > .env
 echo "UID=$(id -u)" >> .env
 echo "GID=$(id -g)" >> .env
 
-docker compose build
+docker compose build ros_eval
