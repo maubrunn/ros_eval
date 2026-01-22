@@ -1,5 +1,5 @@
 # ros_eval
-Useful scripts for plotting of rosbags
+Useful scripts for plotting of rosbags and video frame creation.
 
 ## Building 
 Before building for the first time you should run:
